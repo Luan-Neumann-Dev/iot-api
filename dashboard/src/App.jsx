@@ -9,6 +9,7 @@ export default function IoTDashboard() {
   const [lastReadings, setLastReadings] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [connectionError, setConnectionError] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -35,8 +36,17 @@ export default function IoTDashboard() {
       
       setLoading(false);
       setError(null);
+      setConnectionError(false);
     } catch (err) {
-      setError(err.message);
+      console.error('Erro ao buscar dados:', err);
+      // Só mostra erro de tela cheia se for o primeiro carregamento
+      if (readings.length === 0) {
+        setError(err.message);
+      } else {
+        // Se já tem dados, apenas mostra aviso discreto
+        setConnectionError(true);
+        setTimeout(() => setConnectionError(false), 3000);
+      }
       setLoading(false);
     }
   };
@@ -69,7 +79,10 @@ export default function IoTDashboard() {
     if (sensorId.startsWith('M')) {
       return value ? 'Detectado' : 'Não detectado';
     }
-    return `${value}${getSensorUnit(sensorId)}`;
+    const formattedValue = typeof value === 'number' 
+      ? value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+      : value;
+    return `${formattedValue}${getSensorUnit(sensorId)}`;
   };
 
   const prepareChartData = (sensorId) => {
@@ -116,6 +129,13 @@ export default function IoTDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Alerta de conexão temporário */}
+        {connectionError && (
+          <div className="fixed top-4 right-4 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded shadow-lg z-50 animate-pulse">
+            ⚠️ Erro temporário ao conectar à API
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard IoT</h1>
           <p className="text-gray-600">Monitoramento em tempo real dos sensores</p>
